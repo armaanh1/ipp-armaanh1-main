@@ -32,7 +32,7 @@ use your program.
 """""
 
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 import hashlib
 import re
 import pickle
@@ -45,18 +45,16 @@ class User:
         self.expenses = []
         self.income = []
 
-        print('New User Creted: ', self.username + ' ' + self.password_hash)
+        print('New User Created: ', self.username + ' ' + self.password_hash)
 
-# Dictionary to hold users
-users = {}
+users = {}  # Dictionary to hold users
 
 class Expense:
-    # Predefined categories
     CATEGORIES = ("Housing", "Transportation", "Food", "Utilities", "Clothing",
                   "Medical", "Insurance", "Household Items", "Personal", "Debt",
                   "Retirement", "Education", "Savings", "Gifts/Donations", "Entertainment")
 
-    def __init__(self, title, amount, category, repeating=False, frequency=False):
+    def __init__(self, title, amount, category, repeating=False, frequency=None):
         if category not in self.CATEGORIES:
             raise ValueError(f"Invalid category. Choose from: {', '.join(self.CATEGORIES)}")
         self.title = title
@@ -66,18 +64,18 @@ class Expense:
         self.frequency = frequency
 
     def __repr__(self):
-        return f"{self.title} - ${self.amount} - {self.category}"
+        return f"{self.title} - ${self.amount} - {self.category} - Repeating: {self.repeating} every {self.frequency} days"
 
 class Income:
-    def __init__(self, title, amount, repeating=False, frequency=False):
+    def __init__(self, title, amount, repeating=False, frequency=None):
         self.title = title
         self.amount = amount
+        self.category = "Income"
         self.repeating = repeating
         self.frequency = frequency
 
     def __repr__(self):
-        return f"{self.title} - ${self.amount}"
-
+        return f"{self.title} - ${self.amount} - {self.category} - Repeating: {self.repeating} every {self.frequency} days"
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -96,18 +94,18 @@ def is_password_secure(password):
 def save_data():
     with open('user_data.pkl', 'wb') as output:
         pickle.dump(users, output, pickle.HIGHEST_PROTOCOL)
-
-    print('Saved Data: ', users)
+    for user in users.values():
+        print(f'Saved User: {user.username}, Password Hash: {user.password_hash}, Expenses: {user.expenses}, Income: {user.income}')
 
 def load_data():
     global users
     try:
         with open('user_data.pkl', 'rb') as input:
             users = pickle.load(input)
+            for user in users.values():
+                print(f'Loaded User: {user.username}, Password Hash: {user.password_hash}, Expenses: {user.expenses}, Income: {user.income}')
     except (FileNotFoundError, EOFError):
         users = {}
-
-    print('Loaded Data: ', users)
 
 class BudgetTrackerApp:
     def __init__(self, master):
@@ -116,23 +114,18 @@ class BudgetTrackerApp:
         master.geometry('800x300')
         self.center_window(800, 300)
         self.master.protocol("WM_DELETE_WINDOW", self.on_app_close)
-
-        # Prevent resizing
         self.master.resizable(False, False)
+        self.current_user = None
 
-        # Setup left and right frames
         self.left_frame = tk.Frame(master, width=400, height=300)
         self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH)
-        self.left_frame.pack_propagate(False)  # Prevents frame shrinking
+        self.left_frame.pack_propagate(False)
 
         self.right_frame = tk.Frame(master, width=400, height=300)
         self.right_frame.pack(side=tk.RIGHT, fill=tk.BOTH)
         self.right_frame.pack_propagate(False)
 
-        # Text on the left frame
         self.initial_left_frame()
-
-        # Initial buttons on the right frame
         self.initial_right_frame()
 
     def initial_left_frame(self):
@@ -148,7 +141,7 @@ class BudgetTrackerApp:
         info_label.grid(row=1, column=0, padx=20, pady=(0, 20))
 
         bottom_text = tk.Label(self.left_frame, font=('Montserrat', 12), text="<\\> with ❤️ in 📍 Austin, TX by Armaan Hirani")
-        bottom_text.pack(side=tk.BOTTOM, pady=10)  # Positioning at the bottom with padding
+        bottom_text.pack(side=tk.BOTTOM, pady=10)
 
     def initial_right_frame(self):
         self.clear_right_frame()
@@ -216,6 +209,7 @@ class BudgetTrackerApp:
         password_hash = hash_password(password)
         users[username] = User(username, password_hash)
 
+        self.current_user = users[username]
         self.setup_main_interface()
 
     def login_user(self, username, password):
@@ -227,8 +221,12 @@ class BudgetTrackerApp:
             messagebox.showerror("Error", "Invalid password")
             return
         
-        self.setup_main_interface()
+        self.current_user = users[username]
 
+        print(f"Logged in as {username}")
+        print(f"Current User: {self.current_user.username}, Password Hash: {self.current_user.password_hash}, \nExpenses: {self.current_user.expenses}, \nIncome: {self.current_user.income} \n\n")
+
+        self.setup_main_interface()
 
     def center_window(self, width, height):
         screen_width = self.master.winfo_screenwidth()
@@ -283,18 +281,57 @@ class BudgetTrackerApp:
         edit_income_button.pack(side=tk.RIGHT, padx=20, expand=True)
 
     def setup_transaction_lists(self, frame):
-        left_list_frame = tk.Frame(frame)
-        left_list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        style = ttk.Style()
+        style.configure("Treeview.Heading", font=('Montserrat', 12))
 
-        right_list_frame = tk.Frame(frame)
-        right_list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # Combined transaction list setup
+        self.transaction_tree = ttk.Treeview(frame, columns=("Type", "Title", "Amount", "Category", "Timing"), show="headings", height=8)
+        self.transaction_tree.column("Type", width=60, anchor="center")
+        self.transaction_tree.column("Title", width=120, anchor="center")
+        self.transaction_tree.column("Amount", width=100, anchor="e")
+        self.transaction_tree.column("Category", width=120, anchor="center")
+        self.transaction_tree.column("Timing", width=80, anchor="center")
+        self.transaction_tree.heading("Type", text="Type")
+        self.transaction_tree.heading("Title", text="Title")
+        self.transaction_tree.heading("Amount", text="Amount ($)")
+        self.transaction_tree.heading("Category", text="Category")
+        self.transaction_tree.heading("Timing", text="Timing")
+        self.transaction_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Center labels horizontally, keep default vertical alignment (top)
-        expense_label = tk.Label(left_list_frame, text="Logged Expenses")
-        expense_label.pack(pady=10, anchor='center')  # Horizontal center alignment, vertical padding for aesthetics
+        self.transaction_tree.bind("<Double-1>", self.on_double_click)  # Bind double click event to handler
 
-        income_label = tk.Label(right_list_frame, text="Logged Income")
-        income_label.pack(pady=10, anchor='center')  # Horizontal center alignment, vertical padding for aesthetics
+        self.refresh_transactions()
+
+    def on_double_click(self, event):
+        """Handle double-click events to enable editing of treeview items."""
+        region = self.transaction_tree.identify("region", event.x, event.y)
+        if region == "cell":
+            column = self.transaction_tree.identify_column(event.x)
+            row = self.transaction_tree.identify_row(event.y)
+            if column in ['#2', '#3', '#4', '#5']:  # Specify editable columns
+                self.create_entry_widget(row, column)
+
+    def create_entry_widget(self, item_id, column):
+        """Place an entry widget over the treeview cell for editing."""
+        x, y, width, height = self.transaction_tree.bbox(item_id, column)
+
+        # Create an entry widget and position it to cover the cell
+        entry = tk.Entry(self.transaction_tree, font=('Montserrat', 10))
+        entry.place(x=x, y=y, width=width, height=height, anchor="nw")
+
+        current_value = self.transaction_tree.set(item_id, column)
+        entry.insert(0, current_value)
+        entry.select_range(0, tk.END)
+        entry.focus()
+
+        def save_edit(_):
+            new_value = entry.get()
+            self.transaction_tree.set(item_id, column=column.replace('#', ''), value=new_value)
+            self.update_data(item_id, column, new_value)
+            entry.destroy()
+
+        entry.bind("<Return>", save_edit)
+        entry.bind("<FocusOut>", lambda _: entry.destroy())
 
     def add_edit_expense(self):
         self.clear_right_frame()  # Clears existing widgets in the right frame
@@ -319,13 +356,21 @@ class BudgetTrackerApp:
 
         # Repeating transaction setup
         repeat_var = tk.IntVar()
-        repeat_check = tk.Checkbutton(form_frame, text="Mark as repeating", variable=repeat_var, command=lambda: self.toggle_repeating(form_frame, repeat_var))
+        repeat_check = tk.Checkbutton(form_frame, text="Mark as repeating", variable=repeat_var)
         repeat_check.pack()
 
-        # Submit button
-        submit_button = tk.Button(form_frame, text="Save Expense", command=lambda: self.save_expense(title_entry.get(), amount_entry.get(), category_var.get(), repeat_var.get()))
-        submit_button.pack(pady=10)
+        # Frequency entry if repeating
+        frequency_label = tk.Label(form_frame, text="Frequency (days):", font=('Montserrat', 12))
+        frequency_label.pack()
+        frequency_entry = tk.Entry(form_frame)
+        frequency_entry.pack()
 
+        # Submit button
+        submit_button = tk.Button(form_frame, text="Save Expense", command=lambda: 
+                                  self.save_expense(title_entry.get(), amount_entry.get(), 
+                                                    category_var.get(), repeat_var.get(), 
+                                                    frequency_entry.get()))
+        submit_button.pack(pady=10)
 
     def add_edit_income(self):
         self.clear_right_frame()
@@ -344,42 +389,83 @@ class BudgetTrackerApp:
 
         # Repeating transaction setup
         repeat_var = tk.IntVar()
-        repeat_check = tk.Checkbutton(form_frame, text="Mark as repeating", variable=repeat_var, command=lambda: self.toggle_repeating(form_frame, repeat_var))
+        repeat_check = tk.Checkbutton(form_frame, text="Mark as repeating", variable=repeat_var)
         repeat_check.pack()
 
+        # Frequency entry if repeating
+        frequency_label = tk.Label(form_frame, text="Frequency (days):", font=('Montserrat', 12))
+        frequency_label.pack()
+        frequency_entry = tk.Entry(form_frame)
+        frequency_entry.pack()
+
         # Submit button
-        submit_button = tk.Button(form_frame, text="Save Income", command=lambda: self.save_income(title_entry.get(), amount_entry.get(), repeat_var.get()))
+        submit_button = tk.Button(form_frame, text="Save Income", command=lambda: 
+                                  self.save_income(title_entry.get(), amount_entry.get(), repeat_var.get(), frequency_entry.get()))
         submit_button.pack(pady=10)
 
-    def toggle_repeating(self, parent_frame, repeat_var):
-        if repeat_var.get() == 1:
-            self.repeating_frame = tk.Frame(parent_frame)
-            self.repeating_frame.pack(pady=10)
-            tk.Label(self.repeating_frame, text="Repeats every ").pack(side=tk.LEFT)
-            self.repeat_days_entry = tk.Entry(self.repeating_frame, width=5)
-            self.repeat_days_entry.pack(side=tk.LEFT)
-            tk.Label(self.repeating_frame, text=" days").pack(side=tk.LEFT)
+    def save_expense(self, title, amount, category, repeat, frequency):
+        repeat_status = bool(repeat)
+        frequency_value = int(frequency) if repeat_status else None
+        new_expense = Expense(title, amount, category, repeating=repeat_status, frequency=frequency_value)
+        self.current_user.expenses.append(new_expense)  # Assuming 'current_user' is the logged-in user's username
+        print(f"Saved Expense: {new_expense}")
+        print('all expenses: ', self.current_user.expenses)
+        self.refresh_transactions()
+        self.setup_main_interface()
 
+    def save_income(self, title, amount, repeat, frequency):
+        repeat_status = bool(repeat)
+        frequency_value = int(frequency) if repeat_status else None
+        new_income = Income(title, amount, repeating=repeat_status, frequency=frequency_value)
+        self.current_user.income.append(new_income)  # Assuming 'current_user' is the logged-in user's username
+        print(f"Saved Income: {new_income}")
+        print('all income streams: ', self.current_user.income)
+        self.refresh_transactions()
+        self.setup_main_interface()
+
+    def refresh_transactions(self):
+        if hasattr(self, 'transaction_tree') and self.transaction_tree.winfo_exists():
+            self.transaction_tree.delete(*self.transaction_tree.get_children())
+            for expense in self.current_user.expenses:
+                timing = f"{expense.frequency} days" if expense.repeating else "OT"
+                self.transaction_tree.insert("", "end", values=("Expense", expense.title, expense.amount, expense.category, timing))
+            for income in self.current_user.income:
+                timing = f"{income.frequency} days" if income.repeating else "OT"
+                self.transaction_tree.insert("", "end", values=("Income", income.title, income.amount, "Income", timing))
+
+
+    def update_data(self, item_id, column, new_value):
+        """Update the underlying data based on edits made in the treeview."""
+        item_values = self.transaction_tree.item(item_id, 'values')
+        transaction_type = item_values[0]
+        index = self.transaction_tree.index(item_id)
+
+        if transaction_type == "Expense":
+            transaction = self.current_user.expenses[index]
         else:
-            self.repeating_frame.destroy()
+            transaction = self.current_user.income[index]
 
-    def save_expense(self, title='Expense', amount=0.0, category=None, repeat=None):
-        # Implement logic to save the expense
-        print(f"Saved Expense: {title}, Amount: {amount}, Category: {category}, Repeat: {repeat}")
+        column_index = int(column.strip('#')) - 1
+        if column_index == 1:  # Title
+            transaction.title = new_value
+        elif column_index == 2:  # Amount
+            transaction.amount = float(new_value)
+        elif column_index == 3:  # Category
+            transaction.category = new_value
+        elif column_index == 4:  # Timing
+            if new_value.upper() == "OT":
+                transaction.repeating = False
+                transaction.frequency = None
+            else:
+                transaction.repeating = True
+                transaction.frequency = int(new_value.split()[0])
 
-        self.setup_main_interface()
-
-
-    def save_income(self, title='Income', amount=0.0, repeat=None):
-        # Implement logic to save the income
-        print(f"Saved Income: {title}, Amount: {amount}, Repeat: {repeat}")
-
-        self.setup_main_interface()
+        self.save_data()
 
     def on_app_close(self):
-        save_data()  # Call the function to save your data
-        self.master.destroy()  # Ensures the application window is closed properly
-        time.sleep(1)
+        save_data()
+        self.master.destroy()
+        time.sleep(.2)
         exit(0)
 
 def main():
