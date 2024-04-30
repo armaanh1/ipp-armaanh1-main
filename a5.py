@@ -11,23 +11,81 @@ Complete the following:
 use your program.
 
    email: hiraniarmaan@gmail.com
+   MIKE: Ahmad faced an issue where programs built on the MacOS version of TKinter
+   displayed incorrectly and he had to rerun them on Mac. I beleive this is also
+   fixed when you try and resize the program, but my window is not resizable.
 
 1. What is the purpose of your program?
 
+    The purpose of this program is to help users manage their finances by allowing
+    them to log expenses and income. Users can see a percentge breakdown of
+    their ongoing expenses by category via a pie chart on the left side of the
+    program. Users can also add, edit, and delete expenses and income streams.
+
 2. List the major features of your program:
+
+    - Users can register and log in to the program
+    - Users can log expenses and income streams
+    - Users can see a percentage breakdown of their expenses by category
+    - Users can edit or delete expenses and income streams
+    - Users can mark expenses and income streams as repeating and set a frequency
+    - User data is serialized and saved to a file for persistence
+    - Hashcodes are used to store user passwords securely
 
 3. What 3rd party modules must be installed for the program to work?
    (Must be clear and explicit here or we won't be able to test your program.)
 
+    - matplotlib
+    - tk
+    - autopep8 (not needed to run, but used to check for pep8 compliance)
+        (can attribute most formatting issues to autopep8,
+         but some were fixed manually)
+
+
    If it is required to install 3rd party modules include the EXACT pip command.
+
+    pip install matplotlib
+    pip install tk
+    pip install autopep8
 
 4. List the things your learned while doing this program. Python features,
    techniques, third party modules, etc.
 
+    - I learned how to use the matplotlib library to create pie charts
+    - I learned how to use the tkinter library to create GUIs advanced
+      more advanced than those we developed in class
+    - I learned how to use the pickle library to serialize data
+    - I learned how to use the hashlib library to hash passwords securely
+    - I learned how to use the re library to validate password strength
+    - I learned more about lambda functions and how to use them in tkinter
+    - I learned about how some more quirky parts of python syntax
+      can be used to make code more concise and use less lines
+    - Lastly, I learned how to use the treeview widget in tkinter to
+      display and edit tabular data
+
 5. What was the most difficult thing you had to overcome or learn
    to get this program to work?
 
+    The most difficult thing i had to overcome was actually using/debugging
+    TKinter. Even though we've had plenty of experience using the library in
+    class, we followed a simialr structure through the assignments, as well as
+    the fact that we were given a lot of the code to start with.
+
+    In this project I had to start from scratch, and sadly, I had to do a lot of
+    trial and error to get the program to work.
+
 6. What features would you add next?
+
+    The ability to delete users and their data, as well as the ability to
+    visualize income streams in the pie chart would be one of the next features.
+
+    Also considering users can track repeating expenses, it would be nice to
+    be able to change the view to see the total expenses over a certain period of time.
+    This was something listed in my original plan, but I over much trial and error,
+    I was not able to implement it correctly, I just needed mroe time.
+
+    Also my stretch goal from the beginning was to add a feature that would allow for
+    users to generate pdf reports of their expenses and income streams.
 
 """""
 
@@ -42,6 +100,8 @@ import time
 
 
 class User:
+    """Class to represent a user."""
+
     def __init__(self, username, password_hash):
         self.username = username
         self.password_hash = password_hash
@@ -55,6 +115,7 @@ users = {}  # Dictionary to hold users
 
 
 class Expense:
+    """Class to represent an expense."""
     CATEGORIES = (
         "Housing",
         "Transportation",
@@ -96,6 +157,8 @@ class Expense:
 
 
 class Income:
+    """Class to represent an income stream."""
+
     def __init__(self, title, amount, repeating=False, frequency=None):
         self.title = title
         self.amount = float(amount)
@@ -109,10 +172,12 @@ class Income:
 
 
 def hash_password(password):
+    """Hash a password using SHA-256."""
     return hashlib.sha256(password.encode()).hexdigest()
 
 
 def is_password_secure(password):
+    """Check if a password is secure."""
     if not (8 <= len(password) <= 20):
         return False
     if not re.search(r'[A-Z]', password):
@@ -125,6 +190,7 @@ def is_password_secure(password):
 
 
 def save_data():
+    """Save user data to a file."""
     with open('user_data.pkl', 'wb') as output:
         pickle.dump(users, output, pickle.HIGHEST_PROTOCOL)
     for user in users.values():
@@ -137,6 +203,7 @@ def save_data():
 
 
 def load_data():
+    """Load user data from a file."""
     global users
     try:
         with open('user_data.pkl', 'rb') as new_input:
@@ -153,6 +220,8 @@ def load_data():
 
 
 class BudgetTrackerApp:
+    """Main class for the budget tracker application."""
+
     def __init__(self, master):
         self.master = master
         master.title('Simple Budget Tracker')
@@ -174,6 +243,7 @@ class BudgetTrackerApp:
         self.initial_right_frame()
 
     def initial_left_frame(self):
+        """Initial setup for the left frame."""
         self.clear_left_frame()
         text_frame = tk.Frame(self.left_frame)
         text_frame.place(relx=0.5, rely=0.5, anchor='center')
@@ -206,6 +276,7 @@ class BudgetTrackerApp:
         bottom_text.pack(side=tk.BOTTOM, pady=10)
 
     def initial_right_frame(self):
+        """Initial setup for the right frame."""
         self.clear_right_frame()
         button_frame = tk.Frame(self.right_frame)
         button_frame.pack(expand=True)
@@ -242,14 +313,17 @@ class BudgetTrackerApp:
         quit_button.pack(pady=10)
 
     def clear_right_frame(self):
+        """Clear the right frame of all widgets."""
         for widget in self.right_frame.winfo_children():
             widget.destroy()
 
     def clear_left_frame(self):
+        """Clear the left frame of all widgets."""
         for widget in self.left_frame.winfo_children():
             widget.destroy()
 
     def register_form(self):
+        """Setup the registration form."""
         self.clear_right_frame()
         form_frame = tk.Frame(self.right_frame)
         form_frame.pack(expand=True)
@@ -281,6 +355,7 @@ class BudgetTrackerApp:
         back_button.pack()
 
     def login_form(self):
+        """Setup the login form."""
         self.clear_right_frame()
         form_frame = tk.Frame(self.right_frame)
         form_frame.pack(expand=True)
@@ -312,6 +387,7 @@ class BudgetTrackerApp:
         back_button.pack()
 
     def register_user(self, username, password):
+        """Register a new user."""
         if username in users:
             messagebox.showerror("Error", "Username already exists")
             return
@@ -325,6 +401,7 @@ class BudgetTrackerApp:
         self.setup_main_interface()
 
     def login_user(self, username, password):
+        """Log in an existing user."""
         if username not in users:
             messagebox.showerror("Error", "Username does not exist")
             return
@@ -346,6 +423,7 @@ class BudgetTrackerApp:
         self.setup_main_interface()
 
     def center_window(self, width, height):
+        """Center the window on the screen."""
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
         x = (screen_width // 2) - (width // 2)
@@ -353,13 +431,15 @@ class BudgetTrackerApp:
         self.master.geometry(f'{width}x{height}+{x}+{y}')
 
     def setup_main_interface(self):
+        """Setup the main interface after logging in."""
+        """A method full of methods lmao, I think this is so funny"""
         self.clear_right_frame()
         self.clear_left_frame()  # Assuming you have a method to clear frames
         self.setup_pie_chart_frame()
         self.setup_right_interface()
 
     def setup_pie_chart_frame(self):
-
+        """"Setup the pie chart frame on the left side of the window."""
         if not self.current_user:
             print("No current user logged in.")
             return
@@ -442,6 +522,7 @@ class BudgetTrackerApp:
         chart.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
     def setup_right_interface(self):
+        """Setup the right interface after logging in."""
         top_frame = tk.Frame(
             self.right_frame,
             height=75)  # Reduced height if needed
@@ -456,6 +537,7 @@ class BudgetTrackerApp:
         self.setup_transaction_lists(bottom_frame)
 
     def setup_top_buttons(self, frame):
+        """Setup the buttons at the top of the 'top_frame'."""
         # This frame holds the buttons, positioned at the bottom of 'top_frame'
         button_frame = tk.Frame(frame)
         # Use 'pady' for consistent padding from the frame edges
@@ -475,6 +557,7 @@ class BudgetTrackerApp:
         edit_income_button.pack(side=tk.RIGHT, padx=20, expand=True)
 
     def setup_transaction_lists(self, frame):
+        """Setup the transaction lists in the 'bottom_frame'."""
         style = ttk.Style()
         style.configure("Treeview.Heading", font=('Montserrat', 12))
 
@@ -508,6 +591,7 @@ class BudgetTrackerApp:
 
     def on_double_click(self, event):
         """Handle double-click events to enable editing of treeview items."""
+        """Handle double-click events to enable editing of treeview items."""
         region = self.transaction_tree.identify("region", event.x, event.y)
         if region == "cell":
             column = self.transaction_tree.identify_column(event.x)
@@ -516,7 +600,9 @@ class BudgetTrackerApp:
                 self.create_entry_widget(row, column)
 
     def create_entry_widget(self, item_id, column):
-        """Place an entry widget over the treeview cell for editing."""
+        """Create an entry widget for editing a treeview cell."""
+
+        # Place an entry widget over the treeview cell for editing.
         x, y, width, height = self.transaction_tree.bbox(item_id, column)
 
         # Create an entry widget and position it to cover the cell
@@ -540,6 +626,7 @@ class BudgetTrackerApp:
         entry.bind("<FocusOut>", lambda _: entry.destroy())
 
     def add_edit_expense(self):
+        """Setup the form to add or edit an expense."""
         self.clear_right_frame()  # Clears existing widgets in the right frame
         form_frame = tk.Frame(self.right_frame)
         form_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
@@ -595,6 +682,7 @@ class BudgetTrackerApp:
         submit_button.pack(pady=10)
 
     def add_edit_income(self):
+        """Setup the form to add or edit an income stream."""
         self.clear_right_frame()
         form_frame = tk.Frame(self.right_frame)
         form_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
@@ -642,6 +730,7 @@ class BudgetTrackerApp:
         submit_button.pack(pady=10)
 
     def save_expense(self, title, amount, category, repeat, frequency):
+        """Save an expense to the current user."""
         repeat_status = bool(repeat)
         frequency_value = int(frequency) if repeat_status else None
         new_expense = Expense(
@@ -658,6 +747,7 @@ class BudgetTrackerApp:
         self.setup_main_interface()
 
     def save_income(self, title, amount, repeat, frequency):
+        """Save an income stream to the current user."""
         repeat_status = bool(repeat)
         frequency_value = int(frequency) if repeat_status else None
         new_income = Income(
@@ -673,6 +763,7 @@ class BudgetTrackerApp:
         self.setup_main_interface()
 
     def refresh_transactions(self):
+        """Refresh the transaction treeview with the current user's data."""
         if hasattr(
                 self,
                 'transaction_tree') and self.transaction_tree.winfo_exists():
@@ -731,6 +822,7 @@ class BudgetTrackerApp:
         save_data()
 
     def on_app_close(self):
+        """Handle the window close event."""
         save_data()
         self.master.destroy()
         time.sleep(.2)
@@ -738,6 +830,7 @@ class BudgetTrackerApp:
 
 
 def main():
+    """Main function to run the budget tracker application."""
     load_data()
     root = tk.Tk()
     app = BudgetTrackerApp(root)
@@ -745,4 +838,5 @@ def main():
 
 
 if __name__ == '__main__':
+    """Run the main function."""
     main()
