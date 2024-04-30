@@ -202,7 +202,7 @@ def save_data():
                     user.income}')
 
 
-def load_data():
+def load_data(): 
     """Load user data from a file."""
     global users
     try:
